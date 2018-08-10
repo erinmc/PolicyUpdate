@@ -60,14 +60,14 @@ ScriptLogging(){
 	DATE=`date +%Y-%m-%d\ %H:%M:%S`
 	LOG="$log_location"
 	
-	echo "$DATE" " $1" >> $LOG
+	/bin/echo "$DATE" " $1" >> $LOG
 }
 
 
 # Get policy type - Canary or Tableau
 getType() {
 
-policytype=$(osascript <<AppleScript
+policytype=$(/usr/bin/osascript <<AppleScript
 set myType to {"Type1", "Type2"} 
 set theType to choose from list myType with prompt "Select the Policy Type to update."
 AppleScript
@@ -81,7 +81,7 @@ ScriptLogging " ** User selected $policytype Group to update ** "
 
 get1Policy() {
 
-policypick=$(osascript <<AppleScript
+policypick=$(/usr/bin/osascript <<AppleScript
 
 set myPolicy1 to {"POLICYID1: Policy Display Name", "POLICYID2: Policy Display Name", "POLICYID3: Policy Display Name"}
 
@@ -97,7 +97,7 @@ ScriptLogging " ** User selected $policypick to update ** "
 
 get2Policy() {
 
-policypick=$(osascript <<AppleScript
+policypick=$(/usr/bin/osascript <<AppleScript
 
 set myPolicy2 to {"POLICYID1: Policy Display Name", "POLICYID2: Policy Display Name", "POLICYID3: Policy Display Name"}
 
@@ -112,14 +112,14 @@ ScriptLogging " ** User selected $policypick to update ** "
 # Get the activation date and verify it
 
 getActiveDate() {
-activedate=$(osascript<<END
+activedate=$(/usr/bin/osascript<<END
 tell application "System Events"
 activate
 set the answer to text returned of (display dialog "Please enter a date to activate the policy in format yyyy-mm-dd hh:mm:ss, military time" default answer "YYYY-MM-DD HH:MM:SS" buttons {"Continue"})
 end tell
 END)
 
-	activecheck=$(echo $activedate | awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }') 
+	activecheck=$(/bin/echo $activedate | /usr/bin/awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }') 
 
 until [ $activecheck == "good" ] || [ $activecheck == '' ]; do
 	activedate=$(/usr/bin/osascript<<END
@@ -129,13 +129,13 @@ until [ $activecheck == "good" ] || [ $activecheck == '' ]; do
 	end tell
 END)
 	if [ $activedate == ""]; then
-		echo "User cancelled"
+		/bin/echo "User cancelled"
 				ScriptLogging " ** User quit app ** "
 		activecheck=""
 		exit 0
 		else
-	activecheck=$(echo $activedate | awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }') 
-	echo $activecheck
+	activecheck=$(/bin/echo $activedate | /usr/bin/awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }') 
+	/bin/echo $activecheck
 	fi
 done
 
@@ -146,13 +146,13 @@ ScriptLogging " ** User entered $activedate as the activation date ** "
 # Get the expiration date and verify it
 
 getExpireDate() {
-expiredate=$(osascript<<END
+expiredate=$(/usr/bin/osascript<<END
 tell application "System Events"
 activate
 set the answer to text returned of (display dialog "Please enter a date to expire the policy in format yyyy-mm-dd hh:mm:ss, military time" default answer "YYYY-MM-DD HH:MM:SS" buttons {"Continue"})
 end tell
 END)
-expirecheck=$(echo $expiredate | awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }') 
+expirecheck=$(/bin/echo $expiredate | /urs/bin/awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }') 
 until [ $expirecheck == "good" ] || [ $expirecheck == '' ]; do
 	expiredate=$(osascript<<END
 	tell application "System Events"
@@ -160,7 +160,7 @@ until [ $expirecheck == "good" ] || [ $expirecheck == '' ]; do
 	set the answer to text returned of (display dialog "Incorrect format. Please enter a date to expire the policy in format yyyy-mm-dd hh:mm:ss, military time" default answer "YYYY-MM-DD HH:MM:SS" buttons {"Continue","Cancel"})
 	end tell
 END)
-	expirecheck=$(echo $expiredate | awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }')
+	expirecheck=$(/bin/echo $expiredate | /usr/bin/awk  -F '-|:| ' '{ print ($3 <= 31 && $2 <= 12 && match($1, /^[1-9][0-9][0-9][0-9]$/) && $4 <=24 && $5 <=59 && $6 <= 59) ? "good" : "bad" }')
 done	
 
 ScriptLogging " ** User entered $expiredate as the expiration date ** "
@@ -170,13 +170,13 @@ ScriptLogging " ** User entered $expiredate as the expiration date ** "
 # PUT activtaion and expiration date to Jamf Pro, then verify PUT
 
 doPut() {
-curl -v -u $JPuser:$JPPass -H "Content-Type: text/xml" $JPUrl/JSSResource/policies/id/$policyid -X PUT -d "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><policy><general><date_time_limitations><activation_date>$activedate</activation_date><expiration_date>$expiredate</expiration_date></date_time_limitations></general></policy>" >> /var/log/policydate.log 2>&1
+/usr/bin/curl -v -u $JPuser:$JPPass -H "Content-Type: text/xml" $JPUrl/JSSResource/policies/id/$policyid -X PUT -d "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><policy><general><date_time_limitations><activation_date>$activedate</activation_date><expiration_date>$expiredate</expiration_date></date_time_limitations></general></policy>" >> /var/log/policydate.log 2>&1
 
-xml=$(curl -v -u $JPuser:$JPPass -H "Accept: application/xml" $JPUrl/JSSResource/policies/id/$policyid -X GET)
+xml=$(/usr/bin/curl -v -u $JPuser:$JPPass -H "Accept: application/xml" $JPUrl/JSSResource/policies/id/$policyid -X GET)
 
-activevalue=$(echo $xml | xpath "//policy/general/date_time_limitations/activation_date" | awk -F'<activation_date>|</activation_date>' '{print $2}')
+activevalue=$(/bin/echo $xml | xpath "//policy/general/date_time_limitations/activation_date" | /usr/bin/awk -F'<activation_date>|</activation_date>' '{print $2}')
 
-expirevalue=$(echo $xml | xpath "//policy/general/date_time_limitations/expiration_date" | awk -F'<expiration_date>|</expiration_date>' '{print $2}')
+expirevalue=$(/bin/echo $xml | xpath "//policy/general/date_time_limitations/expiration_date" | /usr/bin/awk -F'<expiration_date>|</expiration_date>' '{print $2}')
 
 if [[ $activevalue != $activedate ]] && [[ $expirevalue != $expiredate ]]; then
 	errorAlert=$("/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper" -windowType utility -title "Error" -heading "Error" -description "An error has occurred.  Check the log located at /var/log/policydate.log for the HTML status." -button1 "OK" -defaultButton 1)
@@ -192,17 +192,17 @@ runProcess() {
 	getType
 
 	if [ $policytype = "false" ]; then
-		echo "User quit app"
+		/bin/echo "User quit app"
 		ScriptLogging " ** User quit app ** "
 		elif
 			[ $policytype == "Policy1" ]; then
 				getPolicy1
 				if [ $policypick == "false" ]; then
-					echo echo "User Quit App"
+					/bin/echo echo "User Quit App"
 							ScriptLogging " ** User quit app ** "
 					exit 0
 					else
-					policyid=`echo "${policypick}" | awk -F: 'FNR == 1 {print $1}'`
+					policyid=`/bin/echo "${policypick}" | awk -F: 'FNR == 1 {print $1}'`
 					getActiveDate
 					getExpireDate
 					doPut
@@ -210,11 +210,11 @@ runProcess() {
 		else 
 		 		getPolicy2
 			if [ $policypick == "false" ]; then
-				echo echo "User Quit App"
+				/bin/echo "User Quit App"
 						ScriptLogging " ** User quit app ** "
 				exit 0
 				else
-				policyid=`echo "${policypick}" | awk -F: 'FNR == 1 {print $1}'`
+				policyid=`/bin/echo "${policypick}" | /usr/bin/awk -F: 'FNR == 1 {print $1}'`
 				getActiveDate
 				getExpireDate
 				doPut
@@ -226,11 +226,11 @@ runProcess() {
 #Prompt for retry
 
 promptRetry(){
-	runAgainYN="$(osascript -e 'tell app "System Events" to display dialog "Would you like to change the dates on other policies?" buttons {"Not Now","Yes"} default button "Yes"' | grep -c "Yes")"
+	runAgainYN="$(/usr/bin/osascript -e 'tell app "System Events" to display dialog "Would you like to change the dates on other policies?" buttons {"Not Now","Yes"} default button "Yes"' | /usr/bin/grep -c "Yes")"
 	until [ $runAgainYN == "0" ]; do
 				ScriptLogging " ** User selected to update another policy ** "
 		runProcess
-		runAgainYN="$(osascript -e 'tell app "System Events" to display dialog "Would you like to change the dates on other policies?" buttons {"Not Now","Yes"} default button "Yes"' | grep -c "Yes")"
+		runAgainYN="$(/usr/bin/osascript -e 'tell app "System Events" to display dialog "Would you like to change the dates on other policies?" buttons {"Not Now","Yes"} default button "Yes"' | /usr/bin/grep -c "Yes")"
 	done
 			ScriptLogging " ** User quit app ** "
 }
